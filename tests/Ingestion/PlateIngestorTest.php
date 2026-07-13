@@ -7,6 +7,7 @@ namespace App\Tests\Ingestion;
 use App\Domain\Vehicle\PlateAssembler;
 use App\Domain\Vehicle\PlateParts;
 use App\Entity\Device;
+use App\Entity\DevicePartialPlate;
 use App\Entity\DevicePlateObservation;
 use App\Ingestion\PlateIngestor;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,8 +24,9 @@ final class PlateIngestorTest extends KernelTestCase
         self::bootKernel();
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
 
-        $repository = $this->em->getRepository(DevicePlateObservation::class);
-        $this->ingestor = new PlateIngestor($this->em, new PlateAssembler(), $repository);
+        $observations = $this->em->getRepository(DevicePlateObservation::class);
+        $partialPlates = $this->em->getRepository(DevicePartialPlate::class);
+        $this->ingestor = new PlateIngestor($this->em, new PlateAssembler(), $partialPlates, $observations);
 
         $this->device = new Device('356938035643809', new \DateTimeImmutable('2026-07-13T10:00:00+00:00'));
         $this->em->persist($this->device);

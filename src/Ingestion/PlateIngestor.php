@@ -8,8 +8,8 @@ use App\Domain\Vehicle\PlateAssembler;
 use App\Domain\Vehicle\PlateAssemblyState;
 use App\Domain\Vehicle\PlateParts;
 use App\Entity\Device;
-use App\Entity\DevicePartialPlate;
 use App\Entity\DevicePlateObservation;
+use App\Repository\DevicePartialPlateRepository;
 use App\Repository\DevicePlateObservationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -18,6 +18,7 @@ final class PlateIngestor
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly PlateAssembler $assembler,
+        private readonly DevicePartialPlateRepository $partialPlates,
         private readonly DevicePlateObservationRepository $observations,
     ) {
     }
@@ -27,14 +28,7 @@ final class PlateIngestor
      */
     public function ingest(Device $device, array $readings): void
     {
-        $staging = $this->entityManager
-            ->getRepository(DevicePartialPlate::class)
-            ->findOneBy(['device' => $device]);
-
-        if (null === $staging) {
-            $staging = new DevicePartialPlate($device);
-            $this->entityManager->persist($staging);
-        }
+        $staging = $this->partialPlates->getOrCreate($device);
 
         $result = $this->assembler->accumulate($readings, new PlateAssemblyState(
             part1: $staging->getPart1(),

@@ -7,6 +7,7 @@ namespace App\Tests\Ingestion;
 use App\Domain\Ingestion\RecordValidator;
 use App\Domain\Vehicle\PlateAssembler;
 use App\Entity\Device;
+use App\Entity\DevicePartialPlate;
 use App\Entity\DevicePlateObservation;
 use App\Ingestion\DeviceProvisioner;
 use App\Ingestion\PlateIngestor;
@@ -25,13 +26,14 @@ final class RecordIngestionServiceTest extends KernelTestCase
         self::bootKernel();
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
 
-        $plateRepository = $this->em->getRepository(DevicePlateObservation::class);
+        $observations = $this->em->getRepository(DevicePlateObservation::class);
+        $partialPlates = $this->em->getRepository(DevicePartialPlate::class);
         $this->service = new RecordIngestionService(
             $this->em,
             new RecordValidator(),
             new DeviceProvisioner($this->em),
             new RecordPersister($this->em->getConnection()),
-            new PlateIngestor($this->em, new PlateAssembler(), $plateRepository),
+            new PlateIngestor($this->em, new PlateAssembler(), $partialPlates, $observations),
         );
     }
 

@@ -59,11 +59,10 @@ final class RecordIngestionService
         $this->entityManager->wrapInTransaction(function () use ($deviceIdentifier, $valid, &$stored): void {
             $device = $this->provisioner->provision($deviceIdentifier, $this->earliest($valid));
 
-            $this->entityManager->flush();
-
             $stored = $this->persister->persist($device, $valid);
 
             $this->plateIngestor->ingest($device, $this->plateReadings($valid));
+
             $this->entityManager->flush();
         });
 
