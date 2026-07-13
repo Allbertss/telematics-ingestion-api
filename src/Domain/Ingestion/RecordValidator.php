@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Domain\Ingestion;
 
+use App\Domain\Vehicle\PlateParts;
+
 final class RecordValidator
 {
     /**
      * @var list<string> AVL ids that are interpreted into typed fields
      */
     private const array KNOWN_IO = ['24', '239', '240', '21', '216', '86', '231', '232'];
+    private const int MAX_EPOCH_SECONDS = 253402300799; // 9999-12-31T23:59:59 UTC
 
     public function validate(mixed $record): ValidRecord|Rejection
     {
@@ -20,7 +23,7 @@ final class RecordValidator
         $timestamp = $this->timestamp($record['timestamp'] ?? null);
 
         if (null === $timestamp) {
-            return new Rejection('missing or non-finite timestamp');
+            return new Rejection('missing or invalid timestamp');
         }
 
         $io = $record['io'] ?? [];
@@ -54,7 +57,7 @@ final class RecordValidator
 
         $float = (float) $value;
 
-        return is_finite($float) && $float > 0.0 ? $float : null;
+        return is_finite($float) && $float > 0.0 && $float <= self::MAX_EPOCH_SECONDS ? $float : null;
     }
 
     private function coordinate(mixed $value, float $absoluteMax): ?float
@@ -111,14 +114,14 @@ final class RecordValidator
     private function text(mixed $value): ?string
     {
         if (is_string($value)) {
-            return $value;
+            $text = $value;
+        } elseif (is_int($value) || is_float($value)) {
+            $text = (string) $value;
+        } else {
+            return null;
         }
 
-        if (is_int($value) || is_float($value)) {
-            return (string) $value;
-        }
-
-        return null;
+        return mb_strlen(trim($text)) > PlateParts::MAX_LENGTH ? null : $text;
     }
 
     /**

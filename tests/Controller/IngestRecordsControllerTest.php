@@ -79,6 +79,41 @@ final class IngestRecordsControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    public function testRejectsAnOverLongDeviceIdentifierWith400(): void
+    {
+        $this->post(['device' => str_repeat('X', 70), 'records' => []]);
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    public function testAnOverLongPlatePartDoesNotCrashTheBatch(): void
+    {
+        $this->post([
+            'device' => 'IMEI-LONGPLATE',
+            'records' => [
+                ['timestamp' => 1781849860.0, 'io' => ['216' => 1000, '231' => str_repeat('A', 40), '232' => '123']],
+            ],
+        ]);
+
+        // The record is stored (200), the malformed plate half dropped — not a 500.
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(1, $this->responseData()['stored']);
+    }
+
+    public function testAnAbsurdTimestampDoesNotCrashTheBatch(): void
+    {
+        $this->post([
+            'device' => 'IMEI-BADTS',
+            'records' => [
+                ['timestamp' => 1e15, 'io' => ['216' => 1000]],
+            ],
+        ]);
+
+        // Rejected in the summary (200), not a 500 from a datetime overflow.
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(0, $this->responseData()['stored']);
+    }
+
     /**
      * @param array<string, mixed> $payload
      */

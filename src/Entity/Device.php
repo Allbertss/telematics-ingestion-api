@@ -12,12 +12,14 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Table(name: 'device')]
 class Device
 {
+    public const int IDENTIFIER_MAX_LENGTH = 64;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 64, unique: true)]
+    #[ORM\Column(length: self::IDENTIFIER_MAX_LENGTH, unique: true)]
     private string $identifier;
 
     #[ORM\Column(name: 'first_seen_at', type: Types::DATETIMETZ_IMMUTABLE)]

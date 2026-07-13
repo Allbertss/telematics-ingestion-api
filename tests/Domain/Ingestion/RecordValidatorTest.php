@@ -206,4 +206,23 @@ final class RecordValidatorTest extends TestCase
         self::assertNull($result->odometerMeters);
         self::assertSame([], $result->extra);
     }
+
+    public function testDropsAPlatePartThatWouldOverflowItsColumn(): void
+    {
+        $result = $this->validator->validate([
+            'timestamp' => 1000.0,
+            'io' => ['231' => str_repeat('A', 40), '232' => '123'], // part1 is 40 chars (> 32)
+        ]);
+
+        self::assertInstanceOf(ValidRecord::class, $result);
+        self::assertNull($result->platePart1);   // dropped, not stored
+        self::assertSame('123', $result->platePart2);
+    }
+
+    public function testRejectsATimestampBeyondTheSupportedRange(): void
+    {
+        $result = $this->validator->validate(['timestamp' => 1e15]); // year ~31,000,000
+
+        self::assertInstanceOf(Rejection::class, $result);
+    }
 }

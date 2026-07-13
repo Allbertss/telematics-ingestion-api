@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Device;
 use App\Ingestion\RecordIngestionService;
 use App\Ingestion\RejectedRecord;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -37,13 +38,19 @@ final class IngestRecordsController
             return $this->error('Missing or blank "device" identifier.');
         }
 
+        $device = trim($device);
+
+        if (mb_strlen($device) > Device::IDENTIFIER_MAX_LENGTH) {
+            return $this->error('The "device" identifier is too long.');
+        }
+
         $records = $payload['records'] ?? null;
 
         if (!is_array($records)) {
             return $this->error('Missing or invalid "records" list.');
         }
 
-        $summary = $this->ingestion->ingest(trim($device), array_values($records));
+        $summary = $this->ingestion->ingest($device, array_values($records));
 
         return new JsonResponse([
             'received' => $summary->received,

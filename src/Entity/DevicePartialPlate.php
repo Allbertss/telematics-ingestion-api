@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Domain\Vehicle\PlateParts;
 use App\Repository\DevicePartialPlateRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,13 +23,13 @@ class DevicePartialPlate
     #[ORM\JoinColumn(name: 'device_id', nullable: false)]
     private Device $device;
 
-    #[ORM\Column(length: 32, nullable: true)]
+    #[ORM\Column(length: PlateParts::MAX_LENGTH, nullable: true)]
     private ?string $part1 = null;
 
     #[ORM\Column(name: 'part1_at', type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $part1At = null;
 
-    #[ORM\Column(length: 32, nullable: true)]
+    #[ORM\Column(length: PlateParts::MAX_LENGTH, nullable: true)]
     private ?string $part2 = null;
 
     #[ORM\Column(name: 'part2_at', type: Types::DATETIMETZ_IMMUTABLE, nullable: true)]

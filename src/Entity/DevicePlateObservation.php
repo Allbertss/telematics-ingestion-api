@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Domain\Vehicle\PlateParts;
 use App\Repository\DevicePlateObservationRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -23,7 +24,7 @@ class DevicePlateObservation
         #[ORM\ManyToOne(targetEntity: Device::class)]
         #[ORM\JoinColumn(name: 'device_id', nullable: false)]
         private Device $device,
-        #[ORM\Column(length: 64)]
+        #[ORM\Column(length: 2 * PlateParts::MAX_LENGTH)]
         private string $plate,
         #[ORM\Column(name: 'observed_at', type: Types::DATETIMETZ_IMMUTABLE)]
         private \DateTimeImmutable $observedAt,
