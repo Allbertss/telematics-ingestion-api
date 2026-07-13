@@ -11,18 +11,25 @@ use Doctrine\DBAL\ParameterType;
 
 final class RecordPersister
 {
-    private const string INSERT_SQL = <<<'SQL'
-        INSERT INTO telematics_record
-            (device_id, recorded_at, latitude, longitude, altitude_m, speed_kmh,
-             ignition, movement, gsm_signal, total_odometer_m,
-             engine_total_fuel_used_ml, extra)
-        VALUES
-            (:device_id, CAST(:recorded_at AS timestamptz),
-             CAST(:latitude AS double precision), CAST(:longitude AS double precision),
-             :altitude_m, :speed_kmh, :ignition, :movement, :gsm_signal,
-             :total_odometer_m, :engine_total_fuel_used_ml, CAST(:extra AS jsonb))
-        ON CONFLICT (device_id, recorded_at) DO NOTHING
-        SQL;
+    private const int MAX_ROWS_PER_INSERT = 1000;
+
+    /**
+     * @var list<array{string, string, ParameterType}>
+     */
+    private const array COLUMNS = [
+        ['device_id', '?', ParameterType::INTEGER],
+        ['recorded_at', 'CAST(? AS timestamptz)', ParameterType::STRING],
+        ['latitude', 'CAST(? AS double precision)', ParameterType::STRING],
+        ['longitude', 'CAST(? AS double precision)', ParameterType::STRING],
+        ['altitude_m', '?', ParameterType::INTEGER],
+        ['speed_kmh', '?', ParameterType::INTEGER],
+        ['ignition', '?', ParameterType::BOOLEAN],
+        ['movement', '?', ParameterType::BOOLEAN],
+        ['gsm_signal', '?', ParameterType::INTEGER],
+        ['total_odometer_m', '?', ParameterType::INTEGER],
+        ['engine_total_fuel_used_ml', '?', ParameterType::INTEGER],
+        ['extra', 'CAST(? AS jsonb)', ParameterType::STRING],
+    ];
 
     public function __construct(
         private readonly Connection $connection,
@@ -44,46 +51,63 @@ final class RecordPersister
 
         $stored = 0;
 
-        foreach ($records as $record) {
-            $stored += $this->insert($deviceId, $record);
+        foreach (array_chunk($records, self::MAX_ROWS_PER_INSERT) as $chunk) {
+            $stored += $this->insertChunk($deviceId, $chunk);
         }
 
         return $stored;
     }
 
-    private function insert(int $deviceId, ValidRecord $record): int
+    /**
+     * @param list<ValidRecord> $records
+     */
+    private function insertChunk(int $deviceId, array $records): int
     {
-        return (int) $this->connection->executeStatement(
-            self::INSERT_SQL,
-            [
-                'device_id' => $deviceId,
-                'recorded_at' => EpochTime::toDateTime($record->timestamp)->format('Y-m-d H:i:s.uP'),
-                'latitude' => $record->latitude,
-                'longitude' => $record->longitude,
-                'altitude_m' => $record->altitudeMeters,
-                'speed_kmh' => $record->speedKmh,
-                'ignition' => $record->ignition,
-                'movement' => $record->movement,
-                'gsm_signal' => $record->gsmSignal,
-                'total_odometer_m' => $record->odometerMeters,
-                'engine_total_fuel_used_ml' => $record->fuelUsedMilliliters,
-                'extra' => $this->encodeExtra($record->extra),
-            ],
-            [
-                'device_id' => ParameterType::INTEGER,
-                'recorded_at' => ParameterType::STRING,
-                'latitude' => ParameterType::STRING,
-                'longitude' => ParameterType::STRING,
-                'altitude_m' => ParameterType::INTEGER,
-                'speed_kmh' => ParameterType::INTEGER,
-                'ignition' => ParameterType::BOOLEAN,
-                'movement' => ParameterType::BOOLEAN,
-                'gsm_signal' => ParameterType::INTEGER,
-                'total_odometer_m' => ParameterType::INTEGER,
-                'engine_total_fuel_used_ml' => ParameterType::INTEGER,
-                'extra' => ParameterType::STRING,
-            ],
+        if ([] === $records) {
+            return 0;
+        }
+
+        $row = '('.implode(', ', array_column(self::COLUMNS, 1)).')';
+        $rowTypes = array_column(self::COLUMNS, 2);
+
+        $params = [];
+        $types = [];
+
+        foreach ($records as $record) {
+            array_push($params, ...$this->rowValues($deviceId, $record));
+            array_push($types, ...$rowTypes);
+        }
+
+        $sql = sprintf(
+            'INSERT INTO telematics_record (%s) VALUES %s ON CONFLICT (device_id, recorded_at) DO NOTHING',
+            implode(', ', array_column(self::COLUMNS, 0)),
+            implode(', ', array_fill(0, count($records), $row)),
         );
+
+        return (int) $this->connection->executeStatement($sql, $params, $types);
+    }
+
+    /**
+     * One record's bound values, in the column order of {@see COLUMNS}.
+     *
+     * @return list<mixed>
+     */
+    private function rowValues(int $deviceId, ValidRecord $record): array
+    {
+        return [
+            $deviceId,
+            EpochTime::toDateTime($record->timestamp)->format('Y-m-d H:i:s.uP'),
+            $record->latitude,
+            $record->longitude,
+            $record->altitudeMeters,
+            $record->speedKmh,
+            $record->ignition,
+            $record->movement,
+            $record->gsmSignal,
+            $record->odometerMeters,
+            $record->fuelUsedMilliliters,
+            $this->encodeExtra($record->extra),
+        ];
     }
 
     /**
