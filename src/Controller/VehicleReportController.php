@@ -47,12 +47,15 @@ final class VehicleReportController
             );
         }
 
+        $fuelPer100Km = $report->fuelPer100Km();
+
         return new JsonResponse([
             'registrationNumber' => $registrationNumber,
             'from' => $from->format(\DateTimeInterface::ATOM),
             'to' => $to->format(\DateTimeInterface::ATOM),
             'distanceKm' => round($report->distanceKm, 3),
             'fuelLitres' => round($report->fuelLitres, 3),
+            'fuelPer100Km' => null === $fuelPer100Km ? null : round($fuelPer100Km, 2),
         ]);
     }
 

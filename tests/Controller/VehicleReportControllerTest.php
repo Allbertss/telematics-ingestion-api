@@ -42,6 +42,7 @@ final class VehicleReportControllerTest extends WebTestCase
         self::assertSame('AB123', $data['registrationNumber']);
         self::assertEqualsWithDelta(2.0, $this->asFloat($data['distanceKm']), 1e-9); // 1000 -> 3000 m
         self::assertEqualsWithDelta(1.0, $this->asFloat($data['fuelLitres']), 1e-9); // 500 -> 1500 mL
+        self::assertEqualsWithDelta(50.0, $this->asFloat($data['fuelPer100Km']), 1e-9); // 1 L / 2 km * 100
     }
 
     private function asFloat(mixed $value): float

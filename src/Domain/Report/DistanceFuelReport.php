@@ -11,4 +11,13 @@ final readonly class DistanceFuelReport
         public float $fuelLitres,
     ) {
     }
+
+    public function fuelPer100Km(): ?float
+    {
+        if ($this->distanceKm <= 0.0) {
+            return null;
+        }
+
+        return $this->fuelLitres / $this->distanceKm * 100;
+    }
 }
