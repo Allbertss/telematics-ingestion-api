@@ -16,4 +16,14 @@ final class EpochTime
 
         return $dateTime->setTimezone(new \DateTimeZone('UTC'));
     }
+
+    public static function toFloat(\DateTimeImmutable $dateTime): float
+    {
+        return (float) $dateTime->format('U.u');
+    }
+
+    public static function toFloatOrNull(?\DateTimeImmutable $dateTime): ?float
+    {
+        return null === $dateTime ? null : self::toFloat($dateTime);
+    }
 }

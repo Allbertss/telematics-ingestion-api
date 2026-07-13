@@ -51,44 +51,28 @@ final class PlateIngestor
 
         $result = $this->assembler->accumulate($readings, new PlateAssemblyState(
             part1: $staging->getPart1(),
-            part1At: $this->toEpoch($staging->getPart1At()),
+            part1At: EpochTime::toFloatOrNull($staging->getPart1At()),
             part2: $staging->getPart2(),
-            part2At: $this->toEpoch($staging->getPart2At()),
+            part2At: EpochTime::toFloatOrNull($staging->getPart2At()),
             plate: $this->observations->findLatestPlate($device),
         ));
 
         $state = $result->state;
 
         if (null !== $state->part1 && null !== $state->part1At) {
-            $staging->setPart1($state->part1, $this->toDateTime($state->part1At));
+            $staging->setPart1($state->part1, EpochTime::toDateTime($state->part1At));
         }
 
         if (null !== $state->part2 && null !== $state->part2At) {
-            $staging->setPart2($state->part2, $this->toDateTime($state->part2At));
+            $staging->setPart2($state->part2, EpochTime::toDateTime($state->part2At));
         }
 
         foreach ($result->observations as $observation) {
             $this->entityManager->persist(new DevicePlateObservation(
                 $device,
                 $observation->plate,
-                $this->toDateTime($observation->observedAt),
+                EpochTime::toDateTime($observation->observedAt),
             ));
         }
-    }
-
-    private function toEpoch(?\DateTimeImmutable $dateTime): ?float
-    {
-        return null === $dateTime ? null : (float) $dateTime->format('U.u');
-    }
-
-    private function toDateTime(float $epochSeconds): \DateTimeImmutable
-    {
-        $dateTime = \DateTimeImmutable::createFromFormat('U.u', number_format($epochSeconds, 6, '.', ''));
-
-        if (false === $dateTime) {
-            throw new \InvalidArgumentException('Invalid epoch timestamp.');
-        }
-
-        return $dateTime->setTimezone(new \DateTimeZone('UTC'));
     }
 }

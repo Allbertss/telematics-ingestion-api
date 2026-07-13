@@ -57,7 +57,7 @@ final class RecordPersister
             self::INSERT_SQL,
             [
                 'device_id' => $deviceId,
-                'recorded_at' => $this->toUtcTimestamp($record->timestamp),
+                'recorded_at' => EpochTime::toDateTime($record->timestamp)->format('Y-m-d H:i:s.uP'),
                 'latitude' => $record->latitude,
                 'longitude' => $record->longitude,
                 'altitude_m' => $record->altitudeMeters,
@@ -84,17 +84,6 @@ final class RecordPersister
                 'extra' => ParameterType::STRING,
             ],
         );
-    }
-
-    private function toUtcTimestamp(float $epochSeconds): string
-    {
-        $dateTime = \DateTimeImmutable::createFromFormat('U.u', number_format($epochSeconds, 6, '.', ''));
-
-        if (false === $dateTime) {
-            throw new \InvalidArgumentException('Record timestamp is not a valid epoch value.');
-        }
-
-        return $dateTime->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s.uP');
     }
 
     /**
