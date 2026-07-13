@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Domain\Vehicle;
 
 use App\Domain\Vehicle\PlateAssembler;
+use App\Domain\Vehicle\PlateAssemblyState;
 use App\Domain\Vehicle\PlateObservation;
 use App\Domain\Vehicle\PlateParts;
 use PHPUnit\Framework\TestCase;
@@ -142,6 +143,55 @@ final class PlateAssemblerTest extends TestCase
             ['AA222', 2.0],
             ['BB222', 3.0],
         ], self::tuples($observations));
+    }
+
+    public function testAccumulateCombinesAHalfFromPriorStateWithANewHalf(): void
+    {
+        // A prior batch left part1 staged; this batch brings part2.
+        $result = $this->assembler->accumulate(
+            [new PlateParts(2.0, part2: '123')],
+            new PlateAssemblyState(part1: 'AB', part1At: 1.0),
+        );
+
+        self::assertSame([['AB123', 2.0]], self::tuples($result->observations));
+        self::assertSame('AB', $result->state->part1);
+        self::assertSame('123', $result->state->part2);
+        self::assertSame('AB123', $result->state->plate);
+    }
+
+    public function testAccumulateDoesNotReEmitTheAlreadyKnownPlate(): void
+    {
+        $result = $this->assembler->accumulate(
+            [new PlateParts(2.0, part1: 'AB', part2: '123')], // same plate resent
+            new PlateAssemblyState(part1: 'AB', part1At: 1.0, part2: '123', part2At: 1.0, plate: 'AB123'),
+        );
+
+        self::assertSame([], self::tuples($result->observations));
+        self::assertSame('AB123', $result->state->plate);
+    }
+
+    public function testAccumulateEmitsWhenTheBatchChangesThePlate(): void
+    {
+        $result = $this->assembler->accumulate(
+            [new PlateParts(3.0, part1: 'XY')],
+            new PlateAssemblyState(part1: 'AB', part1At: 1.0, part2: '123', part2At: 1.0, plate: 'AB123'),
+        );
+
+        self::assertSame([['XY123', 3.0]], self::tuples($result->observations));
+        self::assertSame('XY', $result->state->part1);
+        self::assertSame('XY123', $result->state->plate);
+    }
+
+    public function testAccumulateIgnoresAHalfOlderThanTheStoredOne(): void
+    {
+        // Out-of-order: an older part1 must not regress the newer stored one.
+        $result = $this->assembler->accumulate(
+            [new PlateParts(2.0, part1: 'AB')], // older than the stored part1At = 5.0
+            new PlateAssemblyState(part1: 'XY', part1At: 5.0, part2: '123', part2At: 5.0, plate: 'XY123'),
+        );
+
+        self::assertSame([], self::tuples($result->observations));
+        self::assertSame('XY', $result->state->part1);
     }
 
     /**
