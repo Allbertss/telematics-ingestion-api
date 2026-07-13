@@ -8,15 +8,12 @@ use App\Domain\Vehicle\PlateParts;
 
 final class RecordValidator
 {
-    /**
-     * @var list<string> AVL ids that are interpreted into typed fields
-     */
-    private const array KNOWN_IO = ['24', '239', '240', '21', '216', '86', '231', '232'];
     private const int MAX_EPOCH_SECONDS = 253402300799; // 9999-12-31T23:59:59 UTC
     private const int MAX_UINT16 = 65535;
     private const int MAX_UINT32 = 4294967295;
     private const int MIN_INT32 = -2147483648;
     private const int MAX_INT32 = 2147483647;
+    private const int MAX_GSM_SIGNAL = 5; // 0-5
 
     public function validate(mixed $record): ValidRecord|Rejection
     {
@@ -36,20 +33,31 @@ final class RecordValidator
             $io = [];
         }
 
+        $known = [
+            '24' => $this->boundedInt($io['24'] ?? null, 0, self::MAX_UINT16),
+            '239' => $this->flag($io['239'] ?? null),
+            '240' => $this->flag($io['240'] ?? null),
+            '21' => $this->boundedInt($io['21'] ?? null, 0, self::MAX_GSM_SIGNAL),
+            '216' => $this->boundedInt($io['216'] ?? null, 0, self::MAX_UINT32),
+            '86' => $this->boundedInt($io['86'] ?? null, 0, self::MAX_UINT32),
+            '231' => $this->text($io['231'] ?? null),
+            '232' => $this->text($io['232'] ?? null),
+        ];
+
         $valid = new ValidRecord(
             timestamp: $timestamp,
             latitude: $this->coordinate($record['lat'] ?? null, 90.0),
             longitude: $this->coordinate($record['lon'] ?? null, 180.0),
             altitudeMeters: $this->boundedInt($record['altitude'] ?? null, self::MIN_INT32, self::MAX_INT32),
-            speedKmh: $this->boundedInt($io['24'] ?? null, 0, self::MAX_UINT16),
-            ignition: $this->flag($io['239'] ?? null),
-            movement: $this->flag($io['240'] ?? null),
-            gsmSignal: $this->boundedInt($io['21'] ?? null, 1, 5),
-            odometerMeters: $this->boundedInt($io['216'] ?? null, 0, self::MAX_UINT32),
-            fuelUsedMilliliters: $this->boundedInt($io['86'] ?? null, 0, self::MAX_UINT32),
-            platePart1: $this->text($io['231'] ?? null),
-            platePart2: $this->text($io['232'] ?? null),
-            extra: $this->unknownParams($io),
+            speedKmh: $known['24'],
+            ignition: $known['239'],
+            movement: $known['240'],
+            gsmSignal: $known['21'],
+            odometerMeters: $known['216'],
+            fuelUsedMilliliters: $known['86'],
+            platePart1: $known['231'],
+            platePart2: $known['232'],
+            extra: $this->extra($io, $known),
         );
 
         return $valid->hasPayload() ? $valid : new Rejection('record has no usable data beyond its timestamp');
@@ -124,16 +132,19 @@ final class RecordValidator
     }
 
     /**
-     * @param array<array-key, mixed> $io
+     * @param array<array-key, mixed>                $io
+     * @param array<array-key, int|bool|string|null> $known id => the typed value it produced
      *
      * @return array<array-key, mixed>
      */
-    private function unknownParams(array $io): array
+    private function extra(array $io, array $known): array
     {
         $extra = [];
 
         foreach ($io as $id => $value) {
-            if (!in_array((string) $id, self::KNOWN_IO, true)) {
+            $interpreted = array_key_exists($id, $known) && null !== $known[$id];
+
+            if (!$interpreted) {
                 $extra[$id] = $value;
             }
         }

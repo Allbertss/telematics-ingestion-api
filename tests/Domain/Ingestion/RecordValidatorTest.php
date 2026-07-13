@@ -152,16 +152,25 @@ final class RecordValidatorTest extends TestCase
         self::assertNull($result->odometerMeters);
     }
 
-    public function testGsmSignalOutOfRangeIsDropped(): void
+    public function testGsmSignalOutOfRangeFallsThroughToExtra(): void
     {
         $result = $this->validator->validate([
             'timestamp' => 1000.0,
-            'lat' => 40.17,
-            'io' => ['21' => 9],
+            'io' => ['21' => 9], // beyond the 0..5 range
         ]);
 
         self::assertInstanceOf(ValidRecord::class, $result);
-        self::assertNull($result->gsmSignal);
+        self::assertNull($result->gsmSignal);        // not stored in the typed column...
+        self::assertSame([21 => 9], $result->extra); // ...but preserved for inspection
+    }
+
+    public function testAcceptsAZeroGsmSignal(): void
+    {
+        // 0 ("no signal") is a legitimate reading, not out of range.
+        $result = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['21' => 0]]);
+
+        self::assertInstanceOf(ValidRecord::class, $result);
+        self::assertSame(0, $result->gsmSignal);
     }
 
     public function testIgnitionMapsZeroAndOneAndDropsOthers(): void
@@ -259,7 +268,8 @@ final class RecordValidatorTest extends TestCase
 
         $over = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['216' => 5000000000, '24' => 50]]);
         self::assertInstanceOf(ValidRecord::class, $over);
-        self::assertNull($over->odometerMeters);
+        self::assertNull($over->odometerMeters);            // too wide for the column...
+        self::assertSame([216 => 5000000000], $over->extra); // ...but not silently lost
     }
 
     public function testDropsAnAltitudeBeyondItsColumnRange(): void
