@@ -31,7 +31,7 @@ final class VehicleReportController
             $from = new \DateTimeImmutable($fromRaw);
             $to = new \DateTimeImmutable($toRaw);
         } catch (\Exception) {
-            return $this->error('"from" and "to" must be valid ISO-8601 datetimes.');
+            return $this->error('"from" and "to" must be valid datetimes.');
         }
 
         if ($from > $to) {
