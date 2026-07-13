@@ -13,6 +13,10 @@ final class RecordValidator
      */
     private const array KNOWN_IO = ['24', '239', '240', '21', '216', '86', '231', '232'];
     private const int MAX_EPOCH_SECONDS = 253402300799; // 9999-12-31T23:59:59 UTC
+    private const int MAX_UINT16 = 65535;
+    private const int MAX_UINT32 = 4294967295;
+    private const int MIN_INT32 = -2147483648;
+    private const int MAX_INT32 = 2147483647;
 
     public function validate(mixed $record): ValidRecord|Rejection
     {
@@ -36,13 +40,13 @@ final class RecordValidator
             timestamp: $timestamp,
             latitude: $this->coordinate($record['lat'] ?? null, 90.0),
             longitude: $this->coordinate($record['lon'] ?? null, 180.0),
-            altitudeMeters: $this->signedInt($record['altitude'] ?? null),
-            speedKmh: $this->unsignedInt($io['24'] ?? null),
+            altitudeMeters: $this->boundedInt($record['altitude'] ?? null, self::MIN_INT32, self::MAX_INT32),
+            speedKmh: $this->boundedInt($io['24'] ?? null, 0, self::MAX_UINT16),
             ignition: $this->flag($io['239'] ?? null),
             movement: $this->flag($io['240'] ?? null),
             gsmSignal: $this->boundedInt($io['21'] ?? null, 1, 5),
-            odometerMeters: $this->unsignedInt($io['216'] ?? null),
-            fuelUsedMilliliters: $this->unsignedInt($io['86'] ?? null),
+            odometerMeters: $this->boundedInt($io['216'] ?? null, 0, self::MAX_UINT32),
+            fuelUsedMilliliters: $this->boundedInt($io['86'] ?? null, 0, self::MAX_UINT32),
             platePart1: $this->text($io['231'] ?? null),
             platePart2: $this->text($io['232'] ?? null),
             extra: $this->unknownParams($io),
@@ -86,13 +90,6 @@ final class RecordValidator
         }
 
         return null;
-    }
-
-    private function unsignedInt(mixed $value): ?int
-    {
-        $int = $this->signedInt($value);
-
-        return null !== $int && $int >= 0 ? $int : null;
     }
 
     private function boundedInt(mixed $value, int $min, int $max): ?int

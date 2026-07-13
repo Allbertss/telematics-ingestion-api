@@ -114,6 +114,21 @@ final class IngestRecordsControllerTest extends WebTestCase
         self::assertSame(0, $this->responseData()['stored']);
     }
 
+    public function testAnOutOfRangeSpeedDoesNotCrashTheBatch(): void
+    {
+        // "24": 65535 (a classic sentinel) used to overflow speed_kmh SMALLINT
+        // and 500 the whole batch; now the column holds the full 2-byte range.
+        $this->post([
+            'device' => 'IMEI-SPEED',
+            'records' => [
+                ['timestamp' => 1781849860.0, 'io' => ['216' => 1000, '24' => 65535]],
+            ],
+        ]);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(1, $this->responseData()['stored']);
+    }
+
     /**
      * @param array<string, mixed> $payload
      */

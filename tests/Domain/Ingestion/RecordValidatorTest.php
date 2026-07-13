@@ -225,4 +225,37 @@ final class RecordValidatorTest extends TestCase
 
         self::assertInstanceOf(Rejection::class, $result);
     }
+
+    public function testCapsSpeedToTheTwoByteUnsignedRange(): void
+    {
+        // 65535 (full 2-byte unsigned max) is valid and stored...
+        $ok = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['24' => 65535]]);
+        self::assertInstanceOf(ValidRecord::class, $ok);
+        self::assertSame(65535, $ok->speedKmh);
+
+        // ...beyond it is dropped, so it can't overflow the column and 500 the batch.
+        $over = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['24' => 70000]]);
+        self::assertInstanceOf(ValidRecord::class, $over);
+        self::assertNull($over->speedKmh);
+    }
+
+    public function testCapsOdometerAndFuelToTheFourByteUnsignedRange(): void
+    {
+        $ok = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['216' => 4294967295, '86' => 4294967295]]);
+        self::assertInstanceOf(ValidRecord::class, $ok);
+        self::assertSame(4294967295, $ok->odometerMeters);
+        self::assertSame(4294967295, $ok->fuelUsedMilliliters);
+
+        $over = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['216' => 5000000000]]);
+        self::assertInstanceOf(ValidRecord::class, $over);
+        self::assertNull($over->odometerMeters);
+    }
+
+    public function testDropsAnAltitudeBeyondItsColumnRange(): void
+    {
+        $result = $this->validator->validate(['timestamp' => 1000.0, 'altitude' => 3000000000]); // > int4 max
+
+        self::assertInstanceOf(ValidRecord::class, $result);
+        self::assertNull($result->altitudeMeters);
+    }
 }

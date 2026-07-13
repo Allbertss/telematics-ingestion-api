@@ -34,7 +34,7 @@ class TelematicsRecord
         private ?float $longitude = null,
         #[ORM\Column(name: 'altitude_m', type: Types::INTEGER, nullable: true)]
         private ?int $altitudeMeters = null,
-        #[ORM\Column(name: 'speed_kmh', type: Types::SMALLINT, nullable: true)]
+        #[ORM\Column(name: 'speed_kmh', type: Types::INTEGER, nullable: true)]
         private ?int $speedKmh = null,
         #[ORM\Column(type: Types::BOOLEAN, nullable: true)]
         private ?bool $ignition = null,
