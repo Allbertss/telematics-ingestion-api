@@ -18,6 +18,9 @@ final class ReportingRepository
                 observed_at AS window_start,
                 LEAD(observed_at) OVER (PARTITION BY device_id ORDER BY observed_at) AS window_end
             FROM device_plate_observation
+            WHERE device_id IN (
+                SELECT device_id FROM device_plate_observation WHERE plate = :plate
+            )
         )
         SELECT
             w.device_id AS device_id,
