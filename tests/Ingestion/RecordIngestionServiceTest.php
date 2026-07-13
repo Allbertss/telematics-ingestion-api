@@ -100,6 +100,28 @@ final class RecordIngestionServiceTest extends KernelTestCase
         self::assertSame('AB123', $plate->getPlate());
     }
 
+    public function testBackdatesTheFirstObservationSoEarlierRecordsRemainReportable(): void
+    {
+        // The plate parts arrive mid-batch; the first two records carry no plate.
+        $this->service->ingest('356938035643809', [
+            $this->rawRecord(1781849860.0, ['216' => 1000]),
+            $this->rawRecord(1781849870.0, ['216' => 2000]),
+            $this->rawRecord(1781849880.0, ['216' => 3000, '231' => 'AB', '232' => '123']),
+        ]);
+
+        // The observation opens at the earliest record (…860), not the plate-
+        // completion record (…880), so all three fall inside its window.
+        $epoch = $this->em->getConnection()->fetchOne(
+            'SELECT EXTRACT(EPOCH FROM observed_at) FROM device_plate_observation',
+        );
+
+        if (!is_numeric($epoch)) {
+            self::fail('Expected an observation to be logged.');
+        }
+
+        self::assertEqualsWithDelta(1781849860.0, (float) $epoch, 1e-6);
+    }
+
     /**
      * @param array<array-key, mixed> $io
      *
