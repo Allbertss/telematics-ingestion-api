@@ -28,8 +28,8 @@ final class DistanceFuelCalculator
     }
 
     /**
-     * @param list<CounterReading> $readings ordered readings
-     * @param callable(CounterReading): ?int $select picks the counter to read
+     * @param list<CounterReading>           $readings ordered readings
+     * @param callable(CounterReading): ?int $select   picks the counter to read
      */
     private function sumPositiveDeltas(array $readings, callable $select): int
     {
