@@ -8,12 +8,6 @@ use App\Repository\DeviceRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
-/**
- * A physical telematics unit Teltonika FMC650, identified by the
- * stable identifier it sends in the ingestion envelope. Auto-provisioned on
- * first sighting. Records belong to a device; the vehicle is resolved
- * separately from plate observations.
- */
 #[ORM\Entity(repositoryClass: DeviceRepository::class)]
 #[ORM\Table(name: 'device')]
 class Device

@@ -13,19 +13,6 @@ use App\Entity\DevicePlateObservation;
 use App\Repository\DevicePlateObservationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
-/**
- * Applies a batch's plate halves to a device's persistent state: seeds the pure
- * PlateAssembler with the staged halves (DevicePartialPlate) and the last logged
- * plate, then writes back the updated staging and appends a
- * DevicePlateObservation for each newly changed plate.
- *
- * Does not flush — the caller owns the transaction.
- *
- * MVP note: seeding uses the device's latest logged plate, which is exact for
- * in-order and cross-batch half-completion. A whole batch arriving out of order
- * relative to newer ones may emit a redundant/omitted observation, but as-of
- * resolution over the append-only log stays correct.
- */
 final class PlateIngestor
 {
     public function __construct(

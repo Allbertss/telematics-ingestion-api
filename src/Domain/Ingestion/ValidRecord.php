@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Ingestion;
 
-/**
- * A single record after validation and normalization: the known AVL parameters
- * extracted into typed fields, unknown parameters kept verbatim in `extra`.
- *
- * Every field except the timestamp is nullable — a record may legitimately
- * carry only context (e.g. ignition/movement) and no counters.
- */
 final readonly class ValidRecord
 {
     /**

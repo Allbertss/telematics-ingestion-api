@@ -4,18 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Vehicle;
 
-/**
- * Assembles a vehicle registration plate from its two halves (AVL 231 + 232),
- * which may arrive in different records and across different batches.
- *
- * Readings are ordered by timestamp defensively, so the result does not depend
- * on the caller's ordering.
- */
 final class PlateAssembler
 {
     /**
-     * Assembles a self-contained batch (no prior state).
-     *
      * @param list<PlateParts> $readings one device's plate-part readings
      *
      * @return list<PlateObservation>
@@ -26,11 +17,6 @@ final class PlateAssembler
     }
 
     /**
-     * Assembles a batch on top of a prior state (from persistent staging),
-     * returning the updated state and only the observations that changed the
-     * plate relative to the seed. A half is superseded only by one that is not
-     * older than the stored half, so out-of-order arrivals do not regress it.
-     *
      * @param list<PlateParts> $readings
      */
     public function accumulate(array $readings, PlateAssemblyState $initial): PlateAssemblyResult

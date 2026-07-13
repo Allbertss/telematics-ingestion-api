@@ -20,9 +20,6 @@ final class DevicePlateObservationRepository extends ServiceEntityRepository
         parent::__construct($registry, DevicePlateObservation::class);
     }
 
-    /**
-     * The device's most recently observed plate, or null if none logged yet.
-     */
     public function findLatestPlate(Device $device): ?string
     {
         $plate = $this->createQueryBuilder('o')

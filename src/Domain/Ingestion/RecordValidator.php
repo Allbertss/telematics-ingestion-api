@@ -4,18 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Ingestion;
 
-/**
- * Validates and normalizes a single raw record (as decoded from JSON) into a
- * ValidRecord, or a Rejection when it cannot be used.
- *
- * "Valid" is defined narrowly: a record is rejected only on structural failure
- * — it is not an object, or it has no usable (finite, positive) timestamp. A
- * record that carries only context (e.g. ignition, no odometer) is valid.
- *
- * Field-level problems never reject the whole record: a known AVL value that
- * cannot be coerced to its expected type/range is simply dropped to null, and
- * unknown AVL parameters are kept verbatim in `extra`.
- */
 final class RecordValidator
 {
     /**

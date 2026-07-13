@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Report;
 
-/**
- * Computes distance travelled and fuel consumed from cumulative-counter deltas.
- */
 final class DistanceFuelCalculator
 {
     /**
@@ -31,8 +28,8 @@ final class DistanceFuelCalculator
     }
 
     /**
-     * @param list<CounterReading>           $readings ordered readings
-     * @param callable(CounterReading): ?int $select   picks the counter to read
+     * @param list<CounterReading> $readings ordered readings
+     * @param callable(CounterReading): ?int $select picks the counter to read
      */
     private function sumPositiveDeltas(array $readings, callable $select): int
     {

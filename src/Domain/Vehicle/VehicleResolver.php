@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Vehicle;
 
-/**
- * Resolves which vehicle (plate) a record belonged to.
- */
 final class VehicleResolver
 {
     /**
