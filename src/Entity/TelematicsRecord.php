@@ -28,9 +28,9 @@ class TelematicsRecord
         private Device $device,
         #[ORM\Column(name: 'recorded_at', type: Types::DATETIMETZ_IMMUTABLE)]
         private \DateTimeImmutable $recordedAt,
-        #[ORM\Column(type: Types::FLOAT, nullable: true)]
+        #[ORM\Column(type: Types::FLOAT, nullable: true, options: ['comment' => 'WGS84 (EPSG:4326), decimal degrees'])]
         private ?float $latitude = null,
-        #[ORM\Column(type: Types::FLOAT, nullable: true)]
+        #[ORM\Column(type: Types::FLOAT, nullable: true, options: ['comment' => 'WGS84 (EPSG:4326), decimal degrees'])]
         private ?float $longitude = null,
         #[ORM\Column(name: 'altitude_m', type: Types::INTEGER, nullable: true)]
         private ?int $altitudeMeters = null,
