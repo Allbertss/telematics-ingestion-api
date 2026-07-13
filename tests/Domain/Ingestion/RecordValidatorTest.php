@@ -131,6 +131,7 @@ final class RecordValidatorTest extends TestCase
     {
         $result = $this->validator->validate([
             'timestamp' => 1000.0,
+            'lat' => 40.17, // anchor payload so the record isn't empty after the drops
             'io' => ['216' => 'abc', '86' => 4.5], // non-integer values
         ]);
 
@@ -143,6 +144,7 @@ final class RecordValidatorTest extends TestCase
     {
         $result = $this->validator->validate([
             'timestamp' => 1000.0,
+            'lat' => 40.17,
             'io' => ['216' => -5],
         ]);
 
@@ -154,6 +156,7 @@ final class RecordValidatorTest extends TestCase
     {
         $result = $this->validator->validate([
             'timestamp' => 1000.0,
+            'lat' => 40.17,
             'io' => ['21' => 9],
         ]);
 
@@ -165,7 +168,7 @@ final class RecordValidatorTest extends TestCase
     {
         $on = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['239' => 1]]);
         $off = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['239' => 0]]);
-        $bad = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['239' => 2]]);
+        $bad = $this->validator->validate(['timestamp' => 1000.0, 'lat' => 40.17, 'io' => ['239' => 2]]);
 
         self::assertInstanceOf(ValidRecord::class, $on);
         self::assertInstanceOf(ValidRecord::class, $off);
@@ -181,6 +184,7 @@ final class RecordValidatorTest extends TestCase
             'timestamp' => 1000.0,
             'lat' => 200.0,
             'lon' => -400.0,
+            'io' => ['216' => 1000], // anchor payload; the coordinates are dropped
         ]);
 
         self::assertInstanceOf(ValidRecord::class, $result);
@@ -190,7 +194,7 @@ final class RecordValidatorTest extends TestCase
 
     public function testMissingIoYieldsNullContextButValidRecord(): void
     {
-        $result = $this->validator->validate(['timestamp' => 1000.0]);
+        $result = $this->validator->validate(['timestamp' => 1000.0, 'lat' => 40.17]);
 
         self::assertInstanceOf(ValidRecord::class, $result);
         self::assertNull($result->speedKmh);
@@ -200,11 +204,18 @@ final class RecordValidatorTest extends TestCase
 
     public function testIoThatIsNotAnArrayIsTreatedAsEmpty(): void
     {
-        $result = $this->validator->validate(['timestamp' => 1000.0, 'io' => 'garbage']);
+        $result = $this->validator->validate(['timestamp' => 1000.0, 'lat' => 40.17, 'io' => 'garbage']);
 
         self::assertInstanceOf(ValidRecord::class, $result);
         self::assertNull($result->odometerMeters);
         self::assertSame([], $result->extra);
+    }
+
+    public function testRejectsARecordWithNoUsableDataBeyondTheTimestamp(): void
+    {
+        $result = $this->validator->validate(['timestamp' => 1000.0]);
+
+        self::assertInstanceOf(Rejection::class, $result);
     }
 
     public function testDropsAPlatePartThatWouldOverflowItsColumn(): void
@@ -234,7 +245,7 @@ final class RecordValidatorTest extends TestCase
         self::assertSame(65535, $ok->speedKmh);
 
         // ...beyond it is dropped, so it can't overflow the column and 500 the batch.
-        $over = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['24' => 70000]]);
+        $over = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['24' => 70000, '216' => 1000]]);
         self::assertInstanceOf(ValidRecord::class, $over);
         self::assertNull($over->speedKmh);
     }
@@ -246,14 +257,14 @@ final class RecordValidatorTest extends TestCase
         self::assertSame(4294967295, $ok->odometerMeters);
         self::assertSame(4294967295, $ok->fuelUsedMilliliters);
 
-        $over = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['216' => 5000000000]]);
+        $over = $this->validator->validate(['timestamp' => 1000.0, 'io' => ['216' => 5000000000, '24' => 50]]);
         self::assertInstanceOf(ValidRecord::class, $over);
         self::assertNull($over->odometerMeters);
     }
 
     public function testDropsAnAltitudeBeyondItsColumnRange(): void
     {
-        $result = $this->validator->validate(['timestamp' => 1000.0, 'altitude' => 3000000000]); // > int4 max
+        $result = $this->validator->validate(['timestamp' => 1000.0, 'lat' => 40.17, 'altitude' => 3000000000]); // > int4 max
 
         self::assertInstanceOf(ValidRecord::class, $result);
         self::assertNull($result->altitudeMeters);

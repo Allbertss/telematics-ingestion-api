@@ -25,4 +25,20 @@ final readonly class ValidRecord
         public array $extra,
     ) {
     }
+
+    public function hasPayload(): bool
+    {
+        return null !== $this->latitude
+            || null !== $this->longitude
+            || null !== $this->altitudeMeters
+            || null !== $this->speedKmh
+            || null !== $this->ignition
+            || null !== $this->movement
+            || null !== $this->gsmSignal
+            || null !== $this->odometerMeters
+            || null !== $this->fuelUsedMilliliters
+            || null !== $this->platePart1
+            || null !== $this->platePart2
+            || [] !== $this->extra;
+    }
 }

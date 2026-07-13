@@ -36,7 +36,7 @@ final class RecordValidator
             $io = [];
         }
 
-        return new ValidRecord(
+        $valid = new ValidRecord(
             timestamp: $timestamp,
             latitude: $this->coordinate($record['lat'] ?? null, 90.0),
             longitude: $this->coordinate($record['lon'] ?? null, 180.0),
@@ -51,6 +51,8 @@ final class RecordValidator
             platePart2: $this->text($io['232'] ?? null),
             extra: $this->unknownParams($io),
         );
+
+        return $valid->hasPayload() ? $valid : new Rejection('record has no usable data beyond its timestamp');
     }
 
     private function timestamp(mixed $value): ?float
