@@ -1,0 +1,12 @@
+# PHPStan configuration.
+# Symfony / Doctrine / PHPUnit extensions are auto-registered by
+# phpstan/extension-installer, so no explicit `includes` are needed.
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+    # Lets the Symfony extension resolve service types from the compiled
+    # container. Warm it with: php bin/console cache:warmup
+    symfony:
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
